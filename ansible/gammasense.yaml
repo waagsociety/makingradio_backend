@@ -16,6 +16,8 @@
       app_port: 8090
     roles:
      - role: zzet.postgresql
+       pg_postgis: true
+       pg_postgis_version: '2.3'
      - role: palkan.ruby
      - role: thefinn93.letsencrypt
        letsencrypt_webroot_path: "{{ root_dir }}"
@@ -74,6 +76,13 @@
     #      - build-essential
      - role: ChengLong.iptables
     tasks:
+      - name: Copy conf file
+        copy:
+          src: ../gammaserver/gamma.yaml
+          dest: "{{ git_home }}/gamma.yaml"
+          owner: foo
+          group: foo
+          mode: 0644
       - name: Set Node repo
         script: ./install_node_repo.sh "{{ my_home }}/nodesource_setup.sh" "{{ node_version }}" "{{ my_user }}"
         args:
