@@ -16,6 +16,7 @@
       server_git_home: "{{ src_home }}/server"
       server_git_repo: https://github.com/waagsociety/makingradio_backend.git
       server_port: 4000
+      conf_file: gamma.yaml
       node_version: 6.x
       app_port: 8090
     roles:
@@ -88,12 +89,12 @@
         script: ./deploy_app.sh {{ app_git_home }} "{{ root_dir }}/{{ app_name }}" "{{ app_git_repo }}" "{{ my_user }}"
       - name: Copy conf file
         copy:
-          src: ../gammaserver/gamma.yaml
-          dest: "{{ src_home }}/gamma.yaml"
+          src: "../gammaserver/{{ conf_file }}"
+          dest: "{{ my_home }}/{{ conf_file }}"
           owner: "{{ my_user }}"
           group: "{{ my_user }}"
           mode: 0644
       - name: Deploy server
-        script: ./deploy_server.sh {{ server_git_home }} "{{ server_git_repo }}" "{{ my_user }}"
+        script: ./deploy_server.sh {{ server_git_home }} "{{ server_git_repo }}" "{{ my_user }}" "{{ my_home }}/{{ conf_file }}"
       # args:
       #   creates: /the/created/file.txt

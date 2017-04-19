@@ -69,15 +69,17 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology;
 
 CREATE TABLE IF NOT EXISTS measures
 (
-  srv_ts timestamp with time zone NOT NULL,
+  ts_device timestamp with time zone NOT NULL,
   id_device bigint NOT NULL,
   id_measure bigint NOT NULL,
-  value numeric,
+  measured_value numeric,
   max_value numeric,
   min_value numeric,
+  mean_value numeric,
+  baseline numeric,
   location geometry NOT NULL,
   message text,
-  CONSTRAINT id_timestamp PRIMARY KEY (id_device, srv_ts)
+  CONSTRAINT id_timestamp PRIMARY KEY (id_device, ts_device)
 )
 WITH (
   OIDS=FALSE

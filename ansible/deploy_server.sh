@@ -1,7 +1,7 @@
 GIT_DIR="${1}"
 REPO="${2}"
 MY_USER=${3}
-
+CONF_FILE=${4}
 
 if [ ! -d "${GIT_DIR}" ]
 then
@@ -26,5 +26,7 @@ cd ${GIT_DIR}/gammaserver
 sudo su $MY_USER -c bundler
 
 sudo passenger stop
+
+mv ${CONF_FILE} ${GIT_DIR}/gammaserver/
 
 sudo passenger start
