@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS measures
   min_value numeric,
   mean_value numeric,
   baseline numeric,
-  location geometry NOT NULL,
+  location geography NOT NULL,
   message text,
   CONSTRAINT id_timestamp PRIMARY KEY (id_device, ts_device)
 )

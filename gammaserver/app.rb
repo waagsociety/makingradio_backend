@@ -60,7 +60,7 @@ class GammaApp < Sinatra::Base
 
     puts params
 
-    jdata = JSON.parse(params.to_json,:symbolize_names => true)
+    jdata = params.map { |k, v| [k.to_sym, v] }.to_h
 
     puts jdata
 
@@ -78,8 +78,9 @@ class GammaApp < Sinatra::Base
     if jdata.has_key?(:id_measure)
       where_clause = where_clause + " AND id_measure = #{jdata[:id_measure]}"
     end
-    if jdata.has_key?(:location)
-      where_clause = where_clause + " AND location = #{jdata[:location]}"
+    if jdata.has_key?(:location) && jdata.has_key?(:radius)
+      lat_log = jdata[:location].tr('[]','').split(',')
+      where_clause = where_clause + " AND ST_DWithin(location, ST_MakePoint(#{lat_log[0]},#{lat_log[1]}), #{jdata[:radius]});"
     end
     if jdata.has_key?(:lower)
       where_clause = where_clause + " AND measured_value >= #{jdata[:lower]}"
@@ -223,7 +224,7 @@ class GammaApp < Sinatra::Base
     )
 
     conn.prepare("mypreparedinsert", "INSERT INTO measures (ts_device, id_device, id_measure, measured_value, max_value, min_value, mean_value, baseline, location, message) " +
-    "VALUES ($1::timestamp with time zone,$2::bigint,$3::bigint,$4::numeric,$5::numeric,$6::numeric,$7::numeric,$8::numeric,ST_MakePoint($9,$10)::geometry,$11::text)")
+    "VALUES ($1::timestamp with time zone,$2::bigint,$3::bigint,$4::numeric,$5::numeric,$6::numeric,$7::numeric,$8::numeric,ST_MakePoint($9,$10)::geography ,$11::text)")
 
     begin
       res= conn.exec_prepared("mypreparedinsert",[jdata[:ts_device], jdata[:id_device], jdata[:id_measure], jdata[:measured_value], jdata[:max_value], jdata[:min_value],
