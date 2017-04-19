@@ -52,6 +52,12 @@ class GammaApp < Sinatra::Base
 
   get '/sensordata' do
     # puts gamma_conf
+
+    return_message = {}
+    return_message[:status] = 'unknown error'
+    return_message[:description] = ""
+    return_message[:body] = ""
+
     puts params
 
     jdata = JSON.parse(params.to_json,:symbolize_names => true)
@@ -96,11 +102,28 @@ class GammaApp < Sinatra::Base
 
     puts "Query to run: #{query_to_run}"
 
-    res= conn.exec(query_to_run)
+    begin
+      res= conn.exec(query_to_run)
+    rescue PG::SyntaxError => e
+      err_msg = "ERROR: while reading from DB (PG::SyntaxError), error: #{e.message}"
+      $stderr.puts err_msg
+      return_message[:status] = 'error'
+      return_message[:description] = err_msg
+      return_message[:body] = "query: #{query_to_run}"
+    rescue PGError => e
+      err_msg = "ERROR: while reading from DB, class: #{e.class.name}, message: #{e.message}"
+      $stderr.puts err_msg
+      return_message[:status] = 'error'
+      return_message[:description] = err_msg
+      return_message[:body] = "query: #{query_to_run}"
+    ensure
+      conn.close()
+    end
 
-    # res= conn.exec("WITH latest_measures AS (SELECT id AS theID, max(ts_device) AS theTS FROM  #{gamma_conf['gammadb']['measurestable']} WHERE temp IS NOT NULL GROUP BY id) " +
-    #   "SELECT * from  #{gamma_conf['gammadb']['measurestable']} m, #{gamma_conf['gammadb']['sensorparameters']} s, latest_measures l WHERE m.id=l.theID AND  m.ts_device=l.theTS AND s.id=m.id")
-    conn.close()
+    if ( return_message[:status] == 'error' )
+      return return_message.to_json
+    end
+
     puts "status " + res.cmd_status().to_s
     puts "tuples " + res.ntuples().to_s
     if res.cmd_tuples() > 0
@@ -189,8 +212,6 @@ class GammaApp < Sinatra::Base
       return return_message.to_json
     end
 
-    jdata[:location] = jdata[:location].join(",").tr('[]', '')
-
     conn = PGconn.open(
       :host => gamma_conf['gammadb']['host'],
       :port => gamma_conf['gammadb']['port'],
@@ -201,17 +222,52 @@ class GammaApp < Sinatra::Base
       :password => gamma_conf['gammadb']['password']
     )
 
-    query_to_run = "INSERT INTO measures (ts_device, id_device, id_measure, measured_value, max_value, min_value, mean_value, baseline, location, message) " +
-    "VALUES (#{jdata[:ts_device]}, #{jdata[:id_device]}, #{jdata[:id_measure]}, #{jdata[:measured_value]}, #{jdata[:max_value]}, " +
-    "#{jdata[:min_value]}, #{jdata[:mean_value]}, #{jdata[:baseline]}, ST_MakePoint(#{jdata[:location]}), #{jdata[:message]})"
+    conn.prepare("mypreparedinsert", "INSERT INTO measures (ts_device, id_device, id_measure, measured_value, max_value, min_value, mean_value, baseline, location, message) " +
+    "VALUES ($1::timestamp with time zone,$2::bigint,$3::bigint,$4::numeric,$5::numeric,$6::numeric,$7::numeric,$8::numeric,ST_MakePoint($9,$10)::geometry,$11::text)")
 
-    puts "Query to run: #{query_to_run}"
+    begin
+      res= conn.exec_prepared("mypreparedinsert",[jdata[:ts_device], jdata[:id_device], jdata[:id_measure], jdata[:measured_value], jdata[:max_value], jdata[:min_value],
+        jdata[:mean_value], jdata[:baseline], jdata[:location][0], jdata[:location][1], jdata[:message]])
+    rescue PG::NotNullViolation => e
+      err_msg = "ERROR: while inserting message (PG::NotNullViolation), error: #{e.message}"
+      $stderr.puts err_msg
+      return_message[:status] = 'error'
+      return_message[:description] = err_msg
+      return_message[:body] = "received message: #{jdata}"
+    rescue PG::UniqueViolation => e
+      err_msg = "ERROR: while inserting message (PG::UniqueViolation), error: #{e.message}"
+      $stderr.puts err_msg
+      return_message[:status] = 'error'
+      return_message[:description] = err_msg
+      return_message[:body] = "received message: #{jdata}"
+    rescue PG::InvalidTextRepresentation => e
+      err_msg = "ERROR: while inserting message (PG::InvalidTextRepresentation), error: #{e.message}"
+      $stderr.puts err_msg
+      return_message[:status] = 'error'
+      return_message[:description] = err_msg
+      return_message[:body] = "received message: #{jdata}"
+    rescue PG::CharacterNotInRepertoire => e
+      err_msg = "ERROR: wrong encoding (PG::CharacterNotInRepertoire), error: #{e.message}"
+      $stderr.puts err_msg
+      return_message[:status] = 'error'
+      return_message[:description] = err_msg
+      return_message[:body] = "received message: #{jdata}"
+    rescue PGError => e
+      err_msg = "ERROR: while inserting into DB, class: #{e.class.name}, message: #{e.message}"
+      $stderr.puts err_msg
+      return_message[:status] = 'error'
+      return_message[:description] = err_msg
+      return_message[:body] = "received message: #{jdata}"
+    ensure
+      conn.close()
+    end
 
-    res= conn.exec(query_to_run)
+    if ( return_message[:status] == 'error' )
+      return return_message.to_json
+    end
 
     # res= conn.exec("WITH latest_measures AS (SELECT id AS theID, max(ts_device) AS theTS FROM  #{gamma_conf['gammadb']['measurestable']} WHERE temp IS NOT NULL GROUP BY id) " +
     #   "SELECT * from  #{gamma_conf['gammadb']['measurestable']} m, #{gamma_conf['gammadb']['sensorparameters']} s, latest_measures l WHERE m.id=l.theID AND  m.ts_device=l.theTS AND s.id=m.id")
-    conn.close()
     puts "status " + res.cmd_status().to_s
     puts "tuples " + res.ntuples().to_s
 
