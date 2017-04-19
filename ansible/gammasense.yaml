@@ -10,8 +10,12 @@
       root_dir: /var/www
       app_name: gamma
       my_home: "/home/{{ my_user }}"
-      git_home: "/home/{{ my_user }}/src/{{ app_name }}"
-      git_repo: https://github.com/waagsociety/makingradio.git
+      src_home: "/home/{{ my_user }}/src"
+      app_git_home: "{{ src_home }}/{{ app_name }}"
+      app_git_repo: https://github.com/waagsociety/makingradio.git
+      server_git_home: "{{ src_home }}/server"
+      server_git_repo: https://github.com/waagsociety/makingradio_backend.git
+      server_port: 4000
       node_version: 6.x
       app_port: 8090
     roles:
@@ -64,7 +68,7 @@
                certpath: /etc/letsencrypt/live
              upstreams:
                - name: 'gammaapp'
-                 servers: ['localhost:4000']
+                 servers: ["localhost:{{ server_port }}"]
                  add_proxy_settings:
                    - 'proxy_http_version 1.1'
                    - 'proxy_set_header Host $http_host'
@@ -76,18 +80,20 @@
     #      - build-essential
      - role: ChengLong.iptables
     tasks:
-      - name: Copy conf file
-        copy:
-          src: ../gammaserver/gamma.yaml
-          dest: "{{ git_home }}/gamma.yaml"
-          owner: foo
-          group: foo
-          mode: 0644
       - name: Set Node repo
         script: ./install_node_repo.sh "{{ my_home }}/nodesource_setup.sh" "{{ node_version }}" "{{ my_user }}"
         args:
           creates: "{{ my_home }}/nodesource_setup.sh"
       - name: Deploy app
-        script: ./deploy.sh {{ git_home }} "{{ root_dir }}/{{ app_name }}" "{{ git_repo }}" "{{ my_user }}"
+        script: ./deploy_app.sh {{ app_git_home }} "{{ root_dir }}/{{ app_name }}" "{{ app_git_repo }}" "{{ my_user }}"
+      - name: Copy conf file
+        copy:
+          src: ../gammaserver/gamma.yaml
+          dest: "{{ src_home }}/gamma.yaml"
+          owner: "{{ my_user }}"
+          group: "{{ my_user }}"
+          mode: 0644
+      - name: Deploy server
+        script: ./deploy_server.sh {{ server_git_home }} "{{ server_git_repo }}" "{{ my_user }}"
       # args:
       #   creates: /the/created/file.txt

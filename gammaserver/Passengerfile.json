@@ -1,6 +1,6 @@
 {
     "address": "127.0.0.1",
-    "port": 8090,
+    "port": 4000,
     "environment": "production",
     "ssl": false,
     "daemonize": true,
