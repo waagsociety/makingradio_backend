@@ -75,10 +75,9 @@ CREATE TABLE IF NOT EXISTS measures
   measured_value numeric,
   max_value numeric,
   min_value numeric,
-  mean_value numeric,
   baseline numeric,
   location geography NOT NULL,
-  message text,
+  message text COLLATE pg_catalog."default",
   CONSTRAINT id_timestamp PRIMARY KEY (id_device, ts_device)
 )
 WITH (
