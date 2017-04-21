@@ -9,11 +9,13 @@ require 'pg'
 
 class GammaApp < Sinatra::Base
 
+  ALL_FIELDS = "ts_device, id_device, id_measure, measured_value, max_value, min_value, baseline, ST_AsGeoJSON(location) as location, message "
   attr_accessor :gamma_conf
 
   def initialize
     dir = File.dirname(File.expand_path(__FILE__))
     @gamma_conf = YAML.load_file("#{dir}/gamma.yaml")
+
   end
 
   before do
@@ -37,7 +39,7 @@ class GammaApp < Sinatra::Base
     #
     # query_to_run = "SELECT ts_device, id_device, id_measure, measured_value, max_value, min_value, location, message FROM measures WHERE ts_device > '#{start_ts}' AND ts_device <= '#{end_ts}'"
 
-    query_to_run = "SELECT ts_device, id_device, id_measure, measured_value, max_value, min_value, location, message FROM measures ORDER BY ts_device DESC LIMIT 50"
+    query_to_run = "SELECT #{ALL_FIELDS} FROM measures ORDER BY ts_device DESC LIMIT 50"
 
     res = nil
 
@@ -80,10 +82,10 @@ class GammaApp < Sinatra::Base
     where_clause = " TRUE "
 
     if jdata.has_key?(:before)
-      where_clause = where_clause + " AND ts_device < '#{jdata[:before]}'"
+      where_clause = where_clause + " AND ts_device < to_timestamp(#{jdata[:before]})"
     end
     if jdata.has_key?(:after)
-      where_clause = where_clause + " AND ts_device > '#{jdata[:after]}'"
+      where_clause = where_clause + " AND ts_device > to_timestamp(#{jdata[:after]})"
     end
     if jdata.has_key?(:id_device)
       where_clause = where_clause + " AND id_device = #{jdata[:id_device]}"
@@ -108,7 +110,7 @@ class GammaApp < Sinatra::Base
       return return_message.to_json
     end
 
-    query_to_run = "SELECT * FROM measures WHERE #{where_clause}"
+    query_to_run = "SELECT #{ALL_FIELDS} FROM measures WHERE #{where_clause}"
 
     puts "Query to run: #{query_to_run}"
 
@@ -167,10 +169,10 @@ class GammaApp < Sinatra::Base
 
 
     if jdata.has_key?(:before)
-      where_clause = where_clause + " AND ts_device < '#{jdata[:before]}'"
+      where_clause = where_clause + " AND ts_device < to_timestamp(#{jdata[:before]})"
     end
     if jdata.has_key?(:after)
-      where_clause = where_clause + " AND ts_device > '#{jdata[:after]}'"
+      where_clause = where_clause + " AND ts_device > to_timestamp(#{jdata[:after]})"
     end
     if jdata.has_key?(:location) && jdata.has_key?(:radius)
       lat_log = jdata[:location].tr('[]','').split(',')
@@ -183,7 +185,7 @@ class GammaApp < Sinatra::Base
       return return_message.to_json
     end
 
-    query_to_run = "SELECT id_measure, avg(measured_value) as average, min(min_value) as min, max(max_value) as max FROM measures WHERE #{where_clause} GROUP BY id_measure"
+    query_to_run = "SELECT id_measure, avg(baseline), avg(measured_value) as average, min(min_value) as min, max(max_value) as max FROM measures WHERE #{where_clause} GROUP BY id_measure"
 
     puts "Query to run: #{query_to_run}"
 

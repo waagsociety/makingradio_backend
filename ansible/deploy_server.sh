@@ -7,10 +7,10 @@ if [ ! -d "${GIT_DIR}" ]
 then
 	sudo su $MY_USER -c "git clone ${REPO} ${GIT_DIR}"
 else
-	if sudo su $MY_USER -c "git -C ${GIT_DIR} remote -v update" | grep master | grep 'origin/master' | grep -v 'up to date' >/dev/null
+	if sudo su $MY_USER -c "git -C ${GIT_DIR} remote -v update 2>&1" | grep master | grep 'origin/master' | grep 'up to date' >/dev/null
 	then
 	  echo "Code not changed"
-		exit 0
+		NO_UPDATE="TRUE"
 	else
 		cd ${GIT_DIR};
 		if ! sudo su $MY_USER -c "git pull"
@@ -23,10 +23,19 @@ fi
 
 cd ${GIT_DIR}/gammaserver
 
-sudo su $MY_USER -c bundler
+if [ "${NO_UPDATE} " = " " ]
+then
+	sudo su $MY_USER -c bundler
+fi
 
-sudo passenger stop
+MY_FILENAME=$(basename ${CONF_FILE})
 
-mv ${CONF_FILE} ${GIT_DIR}/gammaserver/
+if [ ! -f ${GIT_DIR}/gammaserver/${MY_FILENAME} ] || ! diff ${GIT_DIR}/gammaserver/${MY_FILENAME} ${CONF_FILE}
+then
+	mv ${CONF_FILE} ${GIT_DIR}/gammaserver/
+	sudo passenger stop
+fi
 
 sudo passenger start
+
+sudo passenger-config restart-app /
