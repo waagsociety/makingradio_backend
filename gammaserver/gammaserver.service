@@ -9,36 +9,35 @@
 ### END INIT INFO
 
 BASE_DIR=
-MY_CMD=bundle
-export PATH=
+# export PATH=
 
 start(){
   cd ${BASE_DIR}
-  ${MY_CMD} exec passenger start
+  sudo passenger start
 }
 stop(){
   cd ${BASE_DIR}
-  ${MY_CMD} exec passenger stop
-  PIDS="$(ps -ef | /bin/grep PassengerAgent | /bin/grep -v grep | tr -s ' ' | cut -f2 -d' ')"
-  if [ "$PIDS " = " " ]
-  then
-    return
-  fi
-  for pid in "${PIDS}"
-  do
-    kill -s SIGTERM ${pid}
-  done
+  sudo passenger stop
+  # PIDS="$(ps -ef | /bin/grep PassengerAgent | /bin/grep -v grep | tr -s ' ' | cut -f2 -d' ')"
+  # if [ "$PIDS " = " " ]
+  # then
+  #   return
+  # fi
+  # for pid in "${PIDS}"
+  # do
+  #   kill -s SIGTERM ${pid}
+  # done
 
 }
 
 status(){
   cd ${BASE_DIR}
-  ${MY_CMD} exec passenger status
+  sudo passenger status
 }
 
 reload(){
   cd ${BASE_DIR}
-  ${MY_CMD} exec passenger-config reopen-logs
+  sudo passenger-config restart-app /
 }
 
 case "$1" in

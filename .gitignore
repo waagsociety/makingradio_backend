@@ -2,3 +2,4 @@ ansible.log
 nginx.retry
 gammasense.retry
 gamma.yaml
+ansible/.vagrant

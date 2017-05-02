@@ -30,11 +30,42 @@ fi
 
 MY_FILENAME=$(basename ${CONF_FILE})
 
-if [ ! -f ${GIT_DIR}/gammaserver/${MY_FILENAME} ] || ! diff ${GIT_DIR}/gammaserver/${MY_FILENAME} ${CONF_FILE}
+if [ -f ${CONF_FILE} ]
 then
-	mv ${CONF_FILE} ${GIT_DIR}/gammaserver/
-	sudo passenger stop
+	if [ ! -f ${GIT_DIR}/gammaserver/${MY_FILENAME} ] || ! diff ${GIT_DIR}/gammaserver/${MY_FILENAME} ${CONF_FILE} >/dev/null
+	then
+		mv ${CONF_FILE} ${GIT_DIR}/gammaserver/
+		sudo passenger stop
+	fi
 fi
+
+PASG_FILE=Passengerfile.json
+
+if ! dpkg -s jq >/dev/null
+then
+	sudo apt-get install jq
+fi
+
+PASG_USER=$(jq '.user' ${PASG_FILE} | tr  -d '"' )
+PASG_LOG=$(jq '.log_file' ${PASG_FILE} | tr  -d '"' )
+PASG_PID=$(jq '.pid_file' ${PASG_FILE} | tr  -d '"' )
+
+PASG_LOG_DIR=$(dirname ${PASG_LOG})
+PASG_PID_DIR=$(dirname ${PASG_PID})
+
+if [ ! -d "${PASG_LOG_DIR}" ]
+then
+	sudo mkdir -P ${PASG_LOG_DIR}
+fi
+
+sudo chown -R ${PASG_USER}:${PASG_USER} ${PASG_LOG_DIR}
+
+if [ ! -d "${PASG_PID_DIR}" ]
+then
+	sudo mkdir -P ${PASG_PID_DIR}
+fi
+
+# sudo chmod ${PASG_USER}:${PASG_USER} ${PASG_LOG_DIR}
 
 sudo passenger start
 
