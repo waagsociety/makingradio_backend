@@ -8,7 +8,7 @@ APP_DIR=${GIT_DIR}/app
 if [ ! -d "${GIT_DIR}" ]
 then
 	sudo su $MY_USER -c "git clone ${REPO} ${GIT_DIR}"
-elif sudo su $MY_USER -c "git -C ${GIT_DIR} remote -v update" | grep master | grep 'origin/master' | grep -v 'up to date' >/dev/null
+elif sudo su $MY_USER -c "git -C ${GIT_DIR} remote -v update" 2>&1 | grep master | grep 'origin/master' | grep 'up to date' >/dev/null
 then
   echo "Code not changed"
   exit 0
