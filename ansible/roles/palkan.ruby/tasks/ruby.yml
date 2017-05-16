@@ -5,10 +5,22 @@
 
 - name: Ruby | Download
   get_url: "url={{ ruby_url }} dest={{ ruby_tmp_path }}.tar"
-  when: _installed.rc == 1 
+  when: _installed.rc == 1
 
 - name: Ruby | Extract
-  command: tar -zxf "{{ ruby_tmp_path }}.tar"
+  # command: tar -zxf "{{ ruby_tmp_path }}.tar"
+  unarchive:
+    src: "{{ ruby_tmp_path }}.tar"
+    dest: "{{ ruby_tmp_path }}"
+    remote_src: True
+  when: _installed.rc == 1
+- name: Install build-essential
+  command: apt-get install -y build-essential
+  become: yes
+  when: _installed.rc == 1
+- name: Install libssl-dev
+  command: apt-get install -y libssl-dev
+  become: yes
   when: _installed.rc == 1
 - name: Make, configure, and install ruby
   command: "{{ item }} chdir={{ ruby_name }}"

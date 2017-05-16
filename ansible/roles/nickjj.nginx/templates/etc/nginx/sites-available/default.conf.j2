@@ -100,6 +100,9 @@ server {
   }
 
   location / {
+{% if item.custom_root_location %}
+    {{ item.custom_root_location|indent(2) }}
+{% endif %}
 {% if item.custom_root_location_try_files %}
     try_files {{ item.custom_root_location_try_files }};
 {% else %}

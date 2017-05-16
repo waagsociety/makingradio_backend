@@ -56,6 +56,7 @@ nginx_default_sites:
       pattern: ' ~ ^/assets/'
       expires: 'max'
     custom_locations: ''
+    custom_root_location: ''
     custom_root_location_try_files: ''
     basic_auth: False
     basic_auth_message: 'Please sign in'

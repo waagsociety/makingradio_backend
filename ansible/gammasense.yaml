@@ -18,7 +18,6 @@
       server_port: 4000
       conf_file: gamma.yaml
       node_version: 6.x
-      app_port: 8090
     roles:
      - role: zzet.postgresql
        pg_postgis: true
@@ -37,12 +36,37 @@
        #   - { user: 'coolperson', password: 'heylookatmeicanviewtheprivateblog' }
        nginx_sites:
          default:
-           domains: ["{{ my_site }}"]
+           domains: ["{{ my_site }}", "www.{{ my_site }}"]
            default_server: True
            root: "{{ root_dir }}/{{ app_name }}"
            nginx_letsencrypt_root: "{{ root_dir }}/challenges"
            ssl:
              certpath: /etc/letsencrypt/live
+          #  upstreams:
+          #    - name: 'gammaapp'
+          #      servers: ["localhost:{{ server_port }}"]
+          #      add_proxy_settings:
+          #        - 'proxy_http_version 1.1'
+          #        - 'proxy_set_header Host $http_host'
+          #        - 'proxy_set_header Upgrade $http_upgrade'
+          #        - 'proxy_buffering off'
+           custom_root_location: |
+               userid         on;
+               userid_domain  gammasense.org;
+               userid_name    deviceIdentifier;
+               userid_path    /;
+               userid_expires max;
+           custom_locations: |
+            location = /app {
+              return 302 /app/;
+            }
+            location /app/ {
+              proxy_http_version 1.1;
+              proxy_set_header Host $http_host;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_buffering off;
+              proxy_pass http://localhost:{{ server_port }}/;
+            }
            # upstreams:
            #   - name: 'myapp'
            #     servers: ['localhost:3000', 'localhost:3001']
@@ -51,30 +75,13 @@
          #   serve_assets:
          #     enabled: False
          #   basic_auth: True
-         www:
-            domains: ["www.{{ my_site }}"]
-            default_server: False
-            root: "{{ root_dir }}/{{ app_name }}"
-            nginx_letsencrypt_root: "{{ root_dir }}/challenges"
-            ssl:
-              certpath: /etc/letsencrypt/live
-         app:
-             domains: ["{{ my_site }}"]
-             listen_http: "{{ app_port }}"
-             listen_https: "{{ app_port }}"
-             default_server: False
-             root: "{{ root_dir }}"
-             nginx_letsencrypt_root: "{{ root_dir }}/challenges"
-             ssl:
-               certpath: /etc/letsencrypt/live
-             upstreams:
-               - name: 'gammaapp'
-                 servers: ["localhost:{{ server_port }}"]
-                 add_proxy_settings:
-                   - 'proxy_http_version 1.1'
-                   - 'proxy_set_header Host $http_host'
-                   - 'proxy_set_header Upgrade $http_upgrade'
-                   - 'proxy_buffering off'
+        #  www:
+        #     domains: ["www.{{ my_site }}"]
+        #     default_server: False
+        #     root: "{{ root_dir }}/{{ app_name }}"
+        #     nginx_letsencrypt_root: "{{ root_dir }}/challenges"
+        #     ssl:
+        #       certpath: /etc/letsencrypt/live
     #  - role: mrlesmithjr.nodejs
     #    nodejs_debian_packages:
     #      - npm
