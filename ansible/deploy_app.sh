@@ -1,7 +1,7 @@
-GIT_DIR="${1}"
-DEST_DIR="${2}"
-REPO="${3}"
-MY_USER=${4}
+MY_USER=${1}
+GIT_DIR="${2}"
+DEST_DIR="${3}"
+REPO="${4}"
 
 APP_DIR=${GIT_DIR}/app
 

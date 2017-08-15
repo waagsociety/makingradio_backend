@@ -6,24 +6,31 @@
     vars:
       my_user: stefano
       my_site: gammasense.org
+      my_home: "/home/{{ my_user }}"    
       admin_mail: "{{ my_user }}/@{{ my_site }}"
       root_dir: /var/www
-      app_name: gamma
-      my_home: "/home/{{ my_user }}"
       src_home: "/home/{{ my_user }}/src"
-      app_git_home: "{{ src_home }}/{{ app_name }}"
-      app_git_repo: https://github.com/waagsociety/makingradio.git
-      server_git_home: "{{ src_home }}/server"
+      app_name: gamma
+      app_git_repo: https://github.com/waagsociety/GammaSense.git
+      algo_name: algo
+      algo_git_repo: https://github.com/waagsociety/GammaSense.git
+      algo_git_branch: algorithm
       server_git_repo: https://github.com/waagsociety/makingradio_backend.git
       server_port: 4000
       conf_file: gamma.yaml
       node_version: 6.x
     roles:
      - role: zzet.postgresql
+       tags:
+         - database
        pg_postgis: true
        pg_postgis_version: '2.3'
      - role: palkan.ruby
+       tags:
+         - ruby
      - role: thefinn93.letsencrypt
+       tags:
+         - letsencrypt
        letsencrypt_webroot_path: "{{ root_dir }}"
        letsencrypt_email: "{{ admin_mail }}"
        letsencrypt_cert_domains:
@@ -31,7 +38,8 @@
         - "www.{{ my_site }}"
        letsencrypt_renewal_command_args: '--renew-hook "systemctl restart nginx"'
      - role: nickjj.nginx
-       tags: nginx
+       tags:
+         - nginx
        # nginx_basic_auth:
        #   - { user: 'coolperson', password: 'heylookatmeicanviewtheprivateblog' }
        nginx_sites:
@@ -52,7 +60,7 @@
           #        - 'proxy_buffering off'
            custom_root_location: |
                userid         on;
-               userid_domain  gammasense.org;
+               userid_domain  {{ my_site }};
                userid_name    deviceIdentifier;
                userid_path    /;
                userid_expires max;
@@ -66,6 +74,9 @@
               proxy_set_header Upgrade $http_upgrade;
               proxy_buffering off;
               proxy_pass http://localhost:{{ server_port }}/;
+            }
+             location /{{ algo_name }} {
+              root /var/www/;
             }
            # upstreams:
            #   - name: 'myapp'
@@ -87,14 +98,26 @@
     #      - npm
     #      - build-essential
      - role: ChengLong.iptables
+       tags:
+         - iptables
     tasks:
       - name: Set Node repo
+        tags:
+          - Node
         script: ./install_node_repo.sh "{{ my_home }}/nodesource_setup.sh" "{{ node_version }}" "{{ my_user }}"
         args:
           creates: "{{ my_home }}/nodesource_setup.sh"
       - name: Deploy app
-        script: ./deploy_app.sh {{ app_git_home }} "{{ root_dir }}/{{ app_name }}" "{{ app_git_repo }}" "{{ my_user }}"
+        tags:
+          - app      
+        script: ./deploy_app.sh "{{ my_user }}" "{{ src_home }}/{{ app_name }}" "{{ root_dir }}/{{ app_name }}" "{{ app_git_repo }}"
+      - name: Deploy algo
+        tags:
+          - algo      
+        script: ./deploy_algo.sh "{{ my_user }}" "{{ src_home }}/{{ algo_name }}" "{{ root_dir }}/{{ algo_name }}" "{{ algo_git_repo }}" "{{ algo_git_branch }}"
       - name: Copy conf file
+        tags:
+          - server
         copy:
           src: "../gammaserver/{{ conf_file }}"
           dest: "{{ my_home }}/{{ conf_file }}"
@@ -102,6 +125,8 @@
           group: "{{ my_user }}"
           mode: 0644
       - name: Deploy server
-        script: ./deploy_server.sh {{ server_git_home }} "{{ server_git_repo }}" "{{ my_user }}" "{{ my_home }}/{{ conf_file }}"
+        tags:
+          - server      
+        script: ./deploy_server.sh "{{ src_home }}/server" "{{ server_git_repo }}" "{{ my_user }}" "{{ my_home }}/{{ conf_file }}"
       # args:
       #   creates: /the/created/file.txt
