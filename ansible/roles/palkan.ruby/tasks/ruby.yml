@@ -11,7 +11,7 @@
   # command: tar -zxf "{{ ruby_tmp_path }}.tar"
   unarchive:
     src: "{{ ruby_tmp_path }}.tar"
-    dest: "{{ ruby_tmp_path }}"
+    dest: "{{ ruby_tmp_dir }}"
     remote_src: True
   when: _installed.rc == 1
 - name: Install build-essential
@@ -23,7 +23,7 @@
   become: yes
   when: _installed.rc == 1
 - name: Make, configure, and install ruby
-  command: "{{ item }} chdir={{ ruby_name }}"
+  command: "{{ item }} chdir={{ ruby_tmp_path }}"
   with_items:
     - ./configure
     - make
